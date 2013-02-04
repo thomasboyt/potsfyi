@@ -137,35 +137,32 @@ define(function (require) {
 
         initialize: function() {
             _.bindAll(this, 'refresh', 'gotoNextSong', 'gotoPrevSong',
-                            'togglePlaying', 'getFormats');
+                            'togglePlaying', 'detectFormats');
 
             this.model = models.PlayingSong;
+            this.model.set('supportedFormats', this.detectFormats());
             this.model.on('change', this.refresh);
         },
 
-        getFormats: function() {
+        detectFormats: function() {
+            // Returns a comma-separated list of supported formats by
+            // file extension, e.g. "mp3,ogg"
             var audio = document.createElement('audio');
-            var wantedFormats = '';
-            var types = ['mp4', 'mpeg', 'ogg'];
-            for (var i=0; i<types.length; i++) {
-                var result = audio.canPlayType('audio/'+types[i])
-                if (result === "probably" || result === "maybe") {
-                    wantedFormats += types[i] + ',';
-                }
-            }
-            return wantedFormats.replace('mp4','m4a').replace('mpeg', 'mp3')
+            var mimetypes = {  // maps file extensions to mime types
+                m4a: 'audio/mp4',
+                ogg: 'audio/ogg',
+                mp3: 'audio/mpeg'
+            };
+            return _.keys(mimetypes).filter(
+                    function(t) { return audio.canPlayType(mimetypes[t]); }
+                ).join(',');
         },
 
         refresh: function() {
             var songID = this.model.get('id');
-            var wantedFormats = this.getFormats()
-            console.log(wantedFormats)
-            console.log(wantedFormats);
-            // XXX following will always request ogg format
-            // this should actually pass a list of supported formats
-            // e.g. ogg,mp3,wav in Chromium's case
+            var wantedFormats = this.model.get('supportedFormats');
 
-            var filename = '/song/' + songID + '/' + wantedFormats
+            var filename = '/song/' + songID + '/' + wantedFormats;
 
             // Force the old track to stop downloading, if applicable
             $('audio', this.$el).trigger('pause');
