@@ -166,6 +166,11 @@ define(function (require) {
             // e.g. ogg,mp3,wav in Chromium's case
 
             var filename = '/song/' + songID + '/' + wantedFormats
+
+            // Force the old track to stop downloading, if applicable
+            $('audio', this.$el).trigger('pause');
+            $('audio', this.$el).attr('src', '');
+
             this.$el.html(tmplPlayer({
                 encodedFilename: filename,
                 isPlaying: true
