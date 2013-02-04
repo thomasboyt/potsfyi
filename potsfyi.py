@@ -5,8 +5,8 @@ from subprocess import Popen, PIPE
 from flask import (Flask, request, render_template, jsonify, abort, redirect,
                    Response)
 from flask.ext.sqlalchemy import SQLAlchemy
-from werkzeug.wsgi import FileWrapper
 from sqlalchemy.ext.hybrid import hybrid_property
+from wsgi_utils import PipeWrapper
 
 
 app = Flask(__name__)
@@ -152,16 +152,10 @@ def get_track(track_id, wanted_formats):
     command = ['avconv', '-v', 'quiet',
                '-i', os.path.join(app.config['MUSIC_DIR'], track.filename),
                '-f', 'ogg', '-acodec', 'libvorbis', '-aq', '5', '-']
-    pipe = Popen(command, stdout=PIPE).stdout
+    pipe = Popen(command, stdout=PIPE)
     print "Transcoding with command: {0}".format(command)
 
-    # Note:
-    # Werkzeug's docs say *not* to use FileWrapper and to use wrap_file()
-    # instead, but we deliberately ignore that advice. Why? The built-in
-    # FileWrapper works fine here, while gunicorn's file wrapper (which
-    # wrap_file() will helpfully call instead if running under gunicorn)
-    # fails because it tries to seek on the pipe.
-    return Response(FileWrapper(pipe),
+    return Response(PipeWrapper(pipe),
                     mimetype='audio/ogg', direct_passthrough=True)
 
 
