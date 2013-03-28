@@ -2,7 +2,8 @@ define(function (require) {
     "use strict";
 
     var _ = require('underscore'),
-        Backbone = require('backbone');
+        Backbone = require('backbone'),
+        BackboneLocalStorage = require('localstorage');
 
     // M holds module contents for quick reference
     // and is returned at the end to define the module.
@@ -84,7 +85,55 @@ define(function (require) {
     var Playlist = Backbone.Model.extend({
         defaults: {
             songCollection: new SongCollection(),
-            position: -1
+            position: -1,
+            id: 'playlist',
+        },
+
+        localStorage: new Backbone.LocalStorage('playlist'),
+
+        initialize: function() {
+            var model = this;
+            Backbone.sync('read', model, {
+                error: function() {
+                    // Assume no data in local storage, so create it.
+                    console.log('read playlist from LS failed; creating');
+                    Backbone.sync('create', model, {
+                        error: function() {
+                            console.log('create playlist in LS failed');
+                        },
+                        success: function() {
+                            console.log('succeeded in creating playlist in LS');
+                        }
+                    });
+                },
+                success: function() {
+                    console.log('Successfully read playlist from LS');
+                },
+
+                // This unbreaks the LocalStorage adapter by restoring
+                // Backbone's pre-1.0 behavior.
+                reset: true
+            });
+        },
+
+        parse: function(resp, options) {
+            console.log("parse called on playlist");
+            var attrs = resp.songCollection;
+            if (attrs) {
+                console.log("creating songCollection with attributes:");
+                console.log(attrs);
+
+                resp.songCollection = new SongCollection();
+                console.log("default songCollection attributes:");
+                console.log(resp.songCollection.attributes);
+
+                resp.songCollection.set(attrs);
+                console.log("new songCollection's attributes:");
+                console.log(resp.songCollection.attributes);
+            } else {
+                console.log("parsing, but nothing to fuck with");
+            }
+            return resp;
         },
 
         seekToSong: function(cid) {
@@ -119,10 +168,26 @@ define(function (require) {
 
         addSong: function(spec) {
             this.get('songCollection').add(spec);
+            Backbone.sync('update', this, {
+                error: function(xhr, status, error) {
+                    alert('Sync failed with status: ' + status);
+                },
+                success: function(data, status, xhr) {
+                    console.log('Successfully synced after adding song');
+                }
+            });
         },
 
         addAlbum: function(albumId) {
             this.get('songCollection').addAlbum(albumId);
+            Backbone.sync('update', this, {
+                error: function(xhr, status, error) {
+                    alert('Sync failed with status: ' + status);
+                },
+                success: function(data, status, xhr) {
+                    console.log('Successfully synced after adding album');
+                }
+            });
         },
 
         removeSong: function(song) {
@@ -144,6 +209,14 @@ define(function (require) {
                 // (or at) current
                 this.set('position', this.get('position') - 1);
             }
+            Backbone.sync('update', this, {
+                error: function(xhr, status, error) {
+                    alert('Sync failed with status: ' + status);
+                },
+                success: function(data, status, xhr) {
+                    console.log('Successfully synced after removing song');
+                }
+            });
         }
     });
 

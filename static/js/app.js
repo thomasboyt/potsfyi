@@ -10,6 +10,7 @@ requirejs.config({
         app: '../app',
         handlebars: 'handlebars',
         hb: 'hbtemplate',
+        localstorage: 'backbone.localStorage',
     },
 
     // Shim to properly load non-AMD modules (Backbone, Underscore)
@@ -44,4 +45,5 @@ function   (models,       views) {
     window.resultListView = resultListView;
     window.playingSongView = playingSongView;
     window.playlistView = playlistView;
+    window.playlistModel = models.Playlist;
 });
